@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UTM / builder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23F4F1EA'/%3E%3Ctext x='50' y='62' font-family='monospace' font-size='52' font-weight='700' text-anchor='middle' fill='%230F0F0F'%3E%2F%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F4F1EA;
+    --paper-dim: #EAE5DA;
+    --ink: #0F0F0F;
+    --ink-2: #2A2A2A;
+    --muted: #6B645A;
+    --line: rgba(15, 15, 15, 0.14);
+    --line-strong: rgba(15, 15, 15, 0.36);
+    --accent: #C2410C;
+    --accent-soft: rgba(194, 65, 12, 0.08);
+    --success: #166534;
+    --error: #991B1B;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 14px/1.5 'IBM Plex Sans', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(circle at 0 0, rgba(15,15,15,0.025) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+  ::selection { background: var(--ink); color: var(--paper); }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* ---------- Header ---------- */
+  header { margin-bottom: 22px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 4px 8px;
+  }
+  .tagline {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+  }
+  .tagline b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Card ---------- */
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    margin-bottom: 14px;
+  }
+  .card-head {
+    border-bottom: 1px solid var(--ink);
+    padding: 8px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--paper-dim);
+  }
+  .card-body { padding: 14px; }
+
+  /* ---------- Field ---------- */
+  .field {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .field:last-child { border-bottom: none; }
+  .field-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 9px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .field-label .req { color: var(--accent); }
+  .field-label .opt {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .field-body { min-width: 0; }
+
+  /* ---------- Tooltip ---------- */
+  .info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: help;
+    position: relative;
+    background: var(--paper);
+    text-transform: none;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+  .info:hover, .info:focus-visible { border-color: var(--ink); color: var(--ink); outline: none; }
+  .info::after, .info::before {
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s, transform 0.12s;
+  }
+  .info::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translate(-50%, 4px);
+    width: 240px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 8px 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    z-index: 50;
+  }
+  .info::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 2px);
+    transform: translate(-50%, 4px);
+    border: 4px solid transparent;
+    border-top-color: var(--ink);
+    z-index: 51;
+  }
+  .info:hover::after, .info:focus-visible::after,
+  .info:hover::before, .info:focus-visible::before {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  /* edge-aware tooltip variant */
+  .info.tip-right::after { left: 0; transform: translate(0, 4px); }
+  .info.tip-right::before { left: 8px; transform: translate(0, 4px); }
+  .info.tip-right:hover::after, .info.tip-right:focus-visible::after { transform: translate(0, 0); }
+  .info.tip-right:hover::before, .info.tip-right:focus-visible::before { transform: translate(0, 0); }
+
+  /* ---------- Inputs ---------- */
+  input[type="text"], input[type="url"], select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 0;
+    background: var(--paper);
+    font: 14px/1.4 'IBM Plex Mono', monospace;
+    color: var(--ink);
+    transition: border-color 0.1s, background 0.1s;
+  }
+  input[type="text"]:focus, input[type="url"]:focus, select:focus {
+    outline: none;
+    border-color: var(--ink);
+    background: #fff;
+  }
+  input.invalid { border-color: var(--error); }
+  select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 28px;
+  }
+  .custom-input { margin-top: 6px; display: none; }
+  .custom-input.show { display: block; }
+  .helper {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.01em;
+  }
+  .helper.cleaned { color: var(--success); }
+  .helper.error { color: var(--error); }
+
+  /* ---------- Advanced toggle ---------- */
+  .advanced-toggle {
+    background: none;
+    border: none;
+    padding: 8px 0 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .advanced-toggle:hover { color: var(--ink); }
+  .advanced-toggle::before { content: '+'; font-weight: 700; }
+  .advanced-toggle.open::before { content: '−'; }
+  .advanced-fields { display: none; padding-top: 6px; }
+  .advanced-fields.open { display: block; }
+
+  /* ---------- Preview ---------- */
+  .preview {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 16px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    word-break: break-all;
+    border: 1px solid var(--ink);
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .preview::before {
+    content: 'OUTPUT';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+  }
+  .preview .url-output { color: var(--paper); display: block; padding-top: 8px; }
+  .preview .url-output .utm-key { color: var(--accent); }
+  .preview .url-output .utm-val { color: #FBBF24; }
+  .preview .url-output .placeholder { color: var(--muted); font-style: italic; }
+  .preview .missing { display: block; margin-top: 10px; color: #FBBF24; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .preview.error { background: #3F0E0E; border-color: #3F0E0E; }
+  .preview.error .url-output { color: #FCA5A5; }
+
+  /* ---------- Buttons ---------- */
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    font: 600 13px/1 'IBM Plex Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 9px 14px;
+    border-radius: 0;
+    transition: background 0.1s, color 0.1s;
+  }
+  button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  button.primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); }
+  button.primary.copied { background: var(--success); border-color: var(--success); color: var(--paper); }
+
+  .help-btn {
+    margin-left: auto;
+    padding: 5px 10px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ---------- Modal ---------- */
+  .modal {
+    padding: 0;
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--ink);
+    max-width: 560px;
+    width: calc(100% - 32px);
+    max-height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+  .modal::backdrop {
+    background: rgba(15, 15, 15, 0.55);
+  }
+  .modal-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--paper-dim);
+    border-bottom: 1px solid var(--ink);
+  }
+  .modal-close {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 8px;
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .modal-close:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .modal-body { padding: 18px 20px 22px; overflow-y: auto; max-height: calc(100vh - 110px); }
+  .modal-body h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 18px 0 6px;
+  }
+  .modal-body h3:first-child { margin-top: 0; }
+  .modal-body p { margin: 0 0 4px; font-size: 13.5px; line-height: 1.55; }
+  .modal-body code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--paper-dim);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+  }
+  .modal-body table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  .modal-body th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 6px 12px 6px 0;
+    vertical-align: top;
+    white-space: nowrap;
+    font-weight: 600;
+    border-bottom: 1px dashed var(--line);
+  }
+  .modal-body td {
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--line);
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+  .modal-body tr:last-child th,
+  .modal-body tr:last-child td { border-bottom: none; }
+  .modal-body th .req { color: var(--accent); margin-left: 1px; }
+  .modal-body pre {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    margin: 6px 0 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .modal-body pre .utm-key { color: var(--accent); }
+  .modal-body pre .utm-val { color: #FBBF24; }
+
+  /* ---------- Recent ---------- */
+  .recent-list { list-style: none; padding: 0; margin: 0; }
+  .recent-list li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--line);
+    align-items: center;
+  }
+  .recent-list li:last-child { border-bottom: none; }
+  .recent-list .rec-meta { min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .recent-list .tag-line {
+    color: var(--ink);
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .recent-list .tag-line .sep { color: var(--muted); margin: 0 4px; }
+  .recent-list .tag-line .a { color: var(--accent); }
+  .recent-list .url-line {
+    color: var(--muted);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .recent-list .time { color: var(--muted); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .recent-list button.small { padding: 5px 9px; font-size: 11px; }
+  .recent-empty { padding: 14px 0; color: var(--muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; text-align: center; }
+  .clear-link {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .clear-link:hover { background: none; color: var(--error); }
+
+  footer {
+    margin-top: 28px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 540px) {
+    .field { grid-template-columns: 1fr; gap: 4px; }
+    .field-label { padding-top: 0; }
+    .info::after { width: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="brand">utm / builder</span>
+    <span class="tagline">Tag links so we can tell <b>what's working</b>. Pick from the lists when you can.</span>
+    <button type="button" class="help-btn" id="help-btn">what are utm links?</button>
+  </header>
+
+  <div class="card">
+    <div class="card-head"><span>compose</span><span style="color:var(--muted)">required <span style="color:var(--accent)">*</span></span></div>
+    <div class="card-body">
+
+      <div class="field">
+        <div class="field-label">
+          url<span class="req">*</span>
+          <span class="info tip-right" tabindex="0" data-tip="The page someone should land on when they click. Must start with https://.">i</span>
+        </div>
+        <div class="field-body">
+          <input type="url" id="dest" placeholder="https://valpashotels.com/blog" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          source<span class="req">*</span>
+          <span class="info tip-right" tabindex="0" data-tip="WHERE the link is shared. The publisher or platform: linkedin, newsletter, google. Lowercase, no spaces.">i</span>
+        </div>
+        <div class="field-body">
+          <select id="source">
+            <option value="">pick one…</option>
+            <option value="linkedin">linkedin</option>
+            <option value="twitter">x/twitter</option>
+            <option value="facebook">facebook</option>
+            <option value="instagram">instagram</option>
+            <option value="youtube">youtube</option>
+            <option value="tiktok">tiktok</option>
+            <option value="reddit">reddit</option>
+            <option value="app-store">app-store</option>
+            <option value="play-store">play-store</option>
+            <option value="google">google</option>
+            <option value="bing">bing</option>
+            <option value="newsletter">newsletter</option>
+            <option value="email">email</option>
+            <option value="partner">partner</option>
+            <option value="ota">ota</option>
+            <option value="__custom__">custom…</option>
+          </select>
+          <input type="text" id="source-custom" class="custom-input" placeholder="e.g. tripadvisor, booking-com, hotel-news-now" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          medium<span class="req">*</span>
+          <span class="info tip-right" tabindex="0" data-tip="The TYPE of channel. social = organic posts, cpc = paid search, email, referral = other sites linking to us.">i</span>
+        </div>
+        <div class="field-body">
+          <select id="medium">
+            <option value="">pick one…</option>
+            <option value="social">social</option>
+            <option value="paid-social">paid-social</option>
+            <option value="email">email</option>
+            <option value="cpc">cpc</option>
+            <option value="organic">organic</option>
+            <option value="referral">referral</option>
+            <option value="display">display</option>
+            <option value="video">video</option>
+            <option value="affiliate">affiliate</option>
+            <option value="qr-code">qr-code</option>
+            <option value="in-room">in-room</option>
+            <option value="__custom__">custom…</option>
+          </select>
+          <input type="text" id="medium-custom" class="custom-input" placeholder="e.g. trade-show, key-card" />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">
+          campaign<span class="req">*</span>
+          <span class="info tip-right" tabindex="0" data-tip="The specific initiative: a launch, event, or test. e.g. ihif-2026, the-thoughful-hotelier-april-2026. Lowercase, dashes.">i</span>
+        </div>
+        <div class="field-body">
+          <input type="text" id="campaign" placeholder="the specific initiative" autocomplete="off" />
+          <div class="helper" id="campaign-helper">Lowercase, dashes. Auto-cleaned.</div>
+        </div>
+      </div>
+
+      <button type="button" class="advanced-toggle" id="advanced-toggle">advanced</button>
+      <div class="advanced-fields" id="advanced-fields">
+
+        <div class="field">
+          <div class="field-label">
+            content<span class="opt">opt</span>
+            <span class="info tip-right" tabindex="0" data-tip="Differentiates links in the same campaign. e.g. hero-book-demo vs sidebar-book-demo, to see which CTA actually converts.">i</span>
+          </div>
+          <div class="field-body">
+            <input type="text" id="content" placeholder="hero-book-demo" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">
+            term<span class="opt">opt</span>
+            <span class="info tip-right" tabindex="0" data-tip="Paid-search keyword. Skip unless you're tagging Google/Bing ads.">i</span>
+          </div>
+          <div class="field-body">
+            <input type="text" id="term" placeholder="bedbug+safe+hotel" autocomplete="off" />
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <div class="preview" id="preview">
+    <div class="url-output" id="url-output"><span class="placeholder">your link will appear here…</span></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" id="copy-btn" class="primary" disabled>copy link</button>
+  </div>
+
+  <div class="card" style="margin-top: 22px;">
+    <div class="card-head">
+      <span>recent (this device only)</span>
+      <button type="button" class="clear-link" id="clear-recent" style="display:none;">clear</button>
+    </div>
+    <div class="card-body" style="padding: 4px 14px;">
+      <ul class="recent-list" id="recent-list">
+        <li class="recent-empty" id="recent-empty">no links yet</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>posthog auto-tracks the clicks once these go out. no extra setup.</footer>
+
+  <dialog class="modal" id="help-modal">
+    <div class="modal-head">
+      <span class="brand">utm / what &amp; why</span>
+      <button type="button" class="modal-close" id="modal-close" aria-label="close">×</button>
+    </div>
+    <div class="modal-body">
+      <h3>what's a utm?</h3>
+      <p>A UTM is a small tag added to a URL that tells our analytics tools where someone came from when they clicked. Tags look like <code>?utm_source=linkedin&amp;utm_medium=social</code>.</p>
+
+      <h3>why it matters</h3>
+      <p>Without UTMs, every visit on valpashotels.com is anonymous "direct traffic." We can't tell whether a LinkedIn post, newsletter, or an industry article drove the click. With UTMs, PostHog attributes every click back to the campaign that produced it, so we can see what's actually working.</p>
+
+      <h3>the five tags</h3>
+      <table>
+        <tr><th>source<span class="req">*</span></th><td>where the link lives. LinkedIn, newsletter, email.</td></tr>
+        <tr><th>medium<span class="req">*</span></th><td>the channel type. social, email, cpc, referral.</td></tr>
+        <tr><th>campaign<span class="req">*</span></th><td>the specific initiative. ihif-2026, newsletter-april-2026.</td></tr>
+        <tr><th>content</th><td>differentiates two links in the same campaign. hero-cta vs footer-cta.</td></tr>
+        <tr><th>term</th><td>paid-search keyword. skip unless tagging google or bing ads.</td></tr>
+      </table>
+
+      <h3>worked example</h3>
+      <p>Sharing the new bedbug-awareness blog on LinkedIn:</p>
+      <pre><span>https://valpashotels.com/blog/bedbug-awareness</span>
+  ?<span class="utm-key">utm_source</span>=<span class="utm-val">linkedin</span>
+  &amp;<span class="utm-key">utm_medium</span>=<span class="utm-val">social</span>
+  &amp;<span class="utm-key">utm_campaign</span>=<span class="utm-val">bedbug-awareness</span></pre>
+
+      <h3>when to use it</h3>
+      <p>Any external link you share that points to valpashotels.com or our app. Internal Slack threads, Notion docs, or anywhere that doesn't land on a marketing page can skip it.</p>
+    </div>
+  </dialog>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'valpas-utm-recent';
+  const RECENT_LIMIT = 10;
+
+  const $ = (id) => document.getElementById(id);
+  const dest = $('dest');
+  const source = $('source');
+  const sourceCustom = $('source-custom');
+  const medium = $('medium');
+  const mediumCustom = $('medium-custom');
+  const campaign = $('campaign');
+  const content = $('content');
+  const term = $('term');
+  const urlOutput = $('url-output');
+  const previewCard = $('preview');
+  const copyBtn = $('copy-btn');
+  const recentList = $('recent-list');
+  const clearRecentBtn = $('clear-recent');
+  const advancedToggle = $('advanced-toggle');
+  const advancedFields = $('advanced-fields');
+
+  function slugify(v) {
+    return (v || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  function fieldValue(select, customInput) {
+    if (select.value === '__custom__') return slugify(customInput.value);
+    return select.value;
+  }
+
+  function toggleCustom(select, customInput) {
+    if (select.value === '__custom__') {
+      customInput.classList.add('show');
+      customInput.focus();
+    } else {
+      customInput.classList.remove('show');
+    }
+  }
+
+  function attachSlugifyOnBlur(input, helperId) {
+    const helper = helperId ? document.getElementById(helperId) : null;
+    const originalText = helper ? helper.textContent : '';
+    input.addEventListener('blur', () => {
+      const before = input.value;
+      const after = slugify(before);
+      if (before && before !== after) {
+        input.value = after;
+        if (helper) {
+          helper.textContent = `cleaned to "${after}"`;
+          helper.classList.add('cleaned');
+          setTimeout(() => {
+            helper.textContent = originalText;
+            helper.classList.remove('cleaned');
+          }, 3000);
+        }
+        update();
+      }
+    });
+  }
+
+  function buildUrl() {
+    const destVal = dest.value.trim();
+    if (!destVal) return { ok: false, reason: 'empty' };
+
+    let parsed;
+    try { parsed = new URL(destVal); }
+    catch { return { ok: false, reason: 'invalid' }; }
+
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { ok: false, reason: 'protocol' };
+    }
+
+    const params = {
+      utm_source: fieldValue(source, sourceCustom),
+      utm_medium: fieldValue(medium, mediumCustom),
+      utm_campaign: slugify(campaign.value),
+      utm_content: slugify(content.value),
+      utm_term: term.value.trim(),
+    };
+
+    for (const [k, v] of Object.entries(params)) {
+      if (v) parsed.searchParams.set(k, v);
+    }
+
+    const required = ['utm_source', 'utm_medium', 'utm_campaign'];
+    const missing = required.filter((k) => !params[k]);
+
+    return { ok: missing.length === 0, url: parsed.toString(), missing, params };
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderPreview(state) {
+    previewCard.classList.remove('error');
+    if (state.reason === 'invalid' || state.reason === 'protocol') {
+      previewCard.classList.add('error');
+      urlOutput.innerHTML = '<span>invalid url. must start with <strong>https://</strong></span>';
+      dest.classList.add('invalid');
+      return;
+    }
+    dest.classList.remove('invalid');
+
+    if (state.reason === 'empty' || !state.url) {
+      urlOutput.innerHTML = '<span class="placeholder">your link will appear here…</span>';
+      return;
+    }
+
+    let parsed;
+    try { parsed = new URL(state.url); } catch { return; }
+    const base = parsed.origin + parsed.pathname;
+    const allParams = Array.from(parsed.searchParams.entries());
+    let html = escapeHtml(base);
+    if (allParams.length) {
+      const parts = allParams.map(([k, v]) => {
+        const ek = escapeHtml(k);
+        const ev = escapeHtml(v);
+        if (k.startsWith('utm_')) {
+          return `<span class="utm-key">${ek}</span>=<span class="utm-val">${ev}</span>`;
+        }
+        return `${ek}=${ev}`;
+      });
+      html += '<span style="color:var(--muted)">?</span>' + parts.join('<span style="color:var(--muted)">&amp;</span>');
+    }
+    if (parsed.hash) html += escapeHtml(parsed.hash);
+
+    if (state.missing && state.missing.length) {
+      html += `<span class="missing">missing: ${state.missing.map((m) => m.replace('utm_','')).join(', ')}</span>`;
+    }
+    urlOutput.innerHTML = html;
+  }
+
+  function update() {
+    const state = buildUrl();
+    renderPreview(state);
+    copyBtn.disabled = !state.ok;
+  }
+
+  async function copyLink() {
+    const state = buildUrl();
+    if (!state.ok) return;
+    try { await navigator.clipboard.writeText(state.url); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = state.url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    addRecent(state);
+    flashCopied();
+  }
+
+  function flashCopied() {
+    const orig = copyBtn.textContent;
+    copyBtn.textContent = 'copied!';
+    copyBtn.classList.add('copied');
+    setTimeout(() => {
+      copyBtn.textContent = orig;
+      copyBtn.classList.remove('copied');
+    }, 1500);
+  }
+
+  function loadRecent() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function saveRecent(arr) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch {}
+  }
+  function addRecent(state) {
+    const arr = loadRecent();
+    const entry = {
+      url: state.url,
+      source: state.params.utm_source,
+      medium: state.params.utm_medium,
+      campaign: state.params.utm_campaign,
+      content: state.params.utm_content,
+      term: state.params.utm_term,
+      ts: Date.now(),
+    };
+    const filtered = arr.filter((e) => e.url !== entry.url);
+    filtered.unshift(entry);
+    saveRecent(filtered.slice(0, RECENT_LIMIT));
+    renderRecent();
+  }
+
+  function renderRecent() {
+    const arr = loadRecent();
+    recentList.innerHTML = '';
+    if (!arr.length) {
+      const li = document.createElement('li');
+      li.className = 'recent-empty';
+      li.textContent = 'no links yet';
+      recentList.appendChild(li);
+      clearRecentBtn.style.display = 'none';
+      return;
+    }
+    clearRecentBtn.style.display = 'inline';
+    for (const entry of arr) {
+      const li = document.createElement('li');
+
+      const meta = document.createElement('div');
+      meta.className = 'rec-meta';
+
+      const tagLine = document.createElement('div');
+      tagLine.className = 'tag-line';
+      const parts = [];
+      if (entry.source) parts.push(`<span class="a">${escapeHtml(entry.source)}</span>`);
+      if (entry.medium) parts.push(escapeHtml(entry.medium));
+      if (entry.campaign) parts.push(escapeHtml(entry.campaign));
+      tagLine.innerHTML = parts.join('<span class="sep">/</span>');
+      meta.appendChild(tagLine);
+
+      const urlLine = document.createElement('div');
+      urlLine.className = 'url-line';
+      urlLine.title = entry.url;
+      urlLine.textContent = entry.url;
+      meta.appendChild(urlLine);
+
+      const time = document.createElement('div');
+      time.className = 'time';
+      time.textContent = relativeTime(entry.ts);
+      meta.appendChild(time);
+
+      li.appendChild(meta);
+
+      const copy = document.createElement('button');
+      copy.className = 'small';
+      copy.textContent = 'copy';
+      copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(entry.url); } catch {}
+        const orig = copy.textContent;
+        copy.textContent = 'copied!';
+        setTimeout(() => { copy.textContent = orig; }, 1200);
+      });
+      li.appendChild(copy);
+      recentList.appendChild(li);
+    }
+  }
+
+  function relativeTime(ts) {
+    const diff = (Date.now() - ts) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  }
+
+  function clearRecent() {
+    if (!confirm('clear recent links?')) return;
+    saveRecent([]);
+    renderRecent();
+  }
+
+  // Wire up
+  [dest, source, sourceCustom, medium, mediumCustom, campaign, content, term].forEach((el) => {
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+  source.addEventListener('change', () => toggleCustom(source, sourceCustom));
+  medium.addEventListener('change', () => toggleCustom(medium, mediumCustom));
+  attachSlugifyOnBlur(campaign, 'campaign-helper');
+  attachSlugifyOnBlur(content);
+  sourceCustom.addEventListener('blur', () => { sourceCustom.value = slugify(sourceCustom.value); update(); });
+  mediumCustom.addEventListener('blur', () => { mediumCustom.value = slugify(mediumCustom.value); update(); });
+
+  copyBtn.addEventListener('click', copyLink);
+  clearRecentBtn.addEventListener('click', clearRecent);
+
+  const helpBtn = $('help-btn');
+  const helpModal = $('help-modal');
+  const modalClose = $('modal-close');
+  helpBtn.addEventListener('click', () => helpModal.showModal());
+  modalClose.addEventListener('click', () => helpModal.close());
+  helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) helpModal.close();
+  });
+
+  advancedToggle.addEventListener('click', () => {
+    advancedToggle.classList.toggle('open');
+    advancedFields.classList.toggle('open');
+  });
+
+  renderRecent();
+  update();
+})();
+</script>
+</body>
+</html>
